@@ -8,6 +8,7 @@ An AI-powered voice assistant that helps people communicate across languages by 
 
 ---
 
+
 ## 📖 Table of Contents
 
 - [Overview](#-overview)
