@@ -7,11 +7,9 @@ Connects the three stages of the MVP into a single end-to-end function:
 
 This is the module app.py (the Streamlit UI) calls into.
 """
-
-from speech_to_text import transcribe_audio
-from translator import translate_text, NEPALI, ENGLISH
-from text_to_speech import synthesize_speech
-
+from src.speech_to_text import transcribe_audio
+from src.translator import translate_text, NEPALI, ENGLISH
+from src.text_to_speech import synthesize_speech
 
 def run_pipeline(audio_path: str, source_lang: str, target_lang: str) -> dict:
     """
