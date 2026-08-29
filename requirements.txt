@@ -1,4 +1,1 @@
-streamlit>=1.38.0
-faster-whisper>=1.0.3
-deep-translator>=1.11.4
-gTTS>=2.5.1
+python3 -m src.translator
