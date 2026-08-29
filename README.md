@@ -51,13 +51,13 @@ The reverse direction (English → Nepali) works the same way.
 ```
                  ┌────────────────────┐
    🎤 Speech ──▶ │   Speech-to-Text   │──▶  Recognized Text
-                 │   (faster-whisper) │
+                 │   (Meta MMS)       │
                  └────────────────────┘
                             │
                             ▼
                  ┌────────────────────┐
                  │   Translation      │──▶  Translated Text
-                 │   (deep-translator)│
+                 │   (Meta NLLB-200)   │
                  └────────────────────┘
                             │
                             ▼
@@ -71,9 +71,9 @@ The reverse direction (English → Nepali) works the same way.
 
 | Component | File | Responsibility |
 |---|---|---|
-| Speech-to-Text | `src/speech_to_text.py` | Converts recorded/uploaded audio into text, with language hinting (`ne`/`en`) |
-| Translator | `src/translator.py` | Translates recognized text between Nepali and English |
-| Text-to-Speech | `src/text_to_speech.py` | Converts translated text into an audio file |
+| Speech-to-Text | `src/speech_to_text.py` | Converts recorded/uploaded audio into text using Meta MMS with language hinting (`ne`/`en`) |
+| Translator | `src/translator.py` | Translates recognized text between Nepali and English using Meta NLLB-200 |
+| Text-to-Speech | `src/text_to_speech.py` | Converts translated text into an audio file using gTTS |
 | Pipeline | `src/pipeline.py` | Orchestrates the three stages above into one call: `run_pipeline()` |
 | App | `app.py` | Streamlit UI: record/upload audio, choose direction, display results, play audio |
 
@@ -116,11 +116,11 @@ Speech → ASR → Language Detection → Conversation History → Context Analy
 
 - **Language:** Python 3.10+
 - **Interface:** [Streamlit](https://streamlit.io/)
-- **Speech-to-Text:** [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — open-source, runs locally, no API key, good Nepali support
-- **Translation:** [deep-translator](https://github.com/nidhaloff/deep-translator) — free Google Translate endpoint, supports Nepali
+- **Speech-to-Text:** [Meta MMS](https://huggingface.co/facebook/mms-1b-all) — multilingual ASR model run locally via Hugging Face Transformers; chosen for better Nepali coverage than Whisper in this project
+- **Translation:** [Meta NLLB-200](https://huggingface.co/facebook/nllb-200-distilled-600M) — local machine translation model via Hugging Face Transformers; chosen to avoid flaky external translation endpoints
 - **Text-to-Speech:** [gTTS](https://github.com/pndurang/gTTS) — free, supports Nepali and English voices
 
-> These were chosen for the MVP based on free-tier availability and Nepali language support. They can be swapped out later (e.g. for NLLB, Coqui/Piper, or a paid API) if quality or rate limits become a problem — see [Roadmap](#-roadmap).
+> The current implementation uses local Hugging Face models for STT and translation to improve reliability and language coverage. These can still be swapped later for stronger or more specialized models as the project evolves — see [Roadmap](#-roadmap).
 
 ---
 
@@ -299,10 +299,10 @@ Other potential applications down the line: tourism, education, healthcare commu
 
 🚧 **In development.**
 
-Current stage: MVP pipeline implemented (STT → Translation → TTS via Streamlit); testing and documentation in progress.
+Current stage: MVP pipeline implemented with Meta MMS for ASR, Meta NLLB-200 for translation, and gTTS for speech output via Streamlit; testing and documentation are still in progress.
 
 ---
 
 ## 📄 License
 
-TBD
+TBD — license details will be finalized before public release.
