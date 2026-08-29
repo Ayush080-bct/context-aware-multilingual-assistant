@@ -106,7 +106,11 @@ if not st.session_state.conversation:
 else:
     lang_labels = {"ne": "🇳🇵 Nepali", "en": "🇬🇧 English"}
 
-    for i, turn in enumerate(st.session_state.conversation, start=1):
+    total_turns = len(st.session_state.conversation)
+
+    # Show newest turn first, without changing how turns are stored/numbered.
+    for reverse_index, turn in enumerate(reversed(st.session_state.conversation)):
+        i = total_turns - reverse_index
         src_label = lang_labels[turn["source_lang"]]
         tgt_label = lang_labels[turn["target_lang"]]
 
@@ -123,4 +127,4 @@ st.caption(
     "sentence-level (each turn is translated independently, without using earlier "
     "turns as context yet), and this is not real-time simultaneous interpretation. "
     "See README for full roadmap."
-)   
+)
