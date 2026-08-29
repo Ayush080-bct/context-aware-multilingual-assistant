@@ -17,11 +17,7 @@ st.set_page_config(page_title="Context-Aware Multilingual AI Assistant", layout=
 st.title("🌐 Context-Aware Multilingual AI Assistant")
 st.caption("MVP: Nepali ↔ English speech translation — continuous conversation")
 
-# ---------------------------------------------------------------------------
-# Session state: holds the running conversation for this browser session.
-# Each entry is a dict: {source_lang, target_lang, recognized_text,
-# translated_text, output_audio_path}
-# ---------------------------------------------------------------------------
+
 if "conversation" not in st.session_state:
     st.session_state.conversation = []
 
@@ -30,9 +26,6 @@ if "turn_count" not in st.session_state:
 
 st.divider()
 
-# ---------------------------------------------------------------------------
-# Controls
-# ---------------------------------------------------------------------------
 col1, col2 = st.columns([3, 1])
 
 with col1:
