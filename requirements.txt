@@ -1,1 +1,7 @@
-python3 -m src.translator
+streamlit
+librosa
+transformers
+sentencepiece
+gtts
+torch
+pytest
