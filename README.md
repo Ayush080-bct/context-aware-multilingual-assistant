@@ -133,9 +133,9 @@ context-aware-multilingual-assistant/
 │
 ├── src/
 │   ├── __init__.py
-│   ├── speech_to_text.py        # ASR (faster-whisper)
-│   ├── translator.py            # Translation (deep-translator)
-│   ├── text_to_speech.py        # TTS (gTTS)
+│   ├── speech_to_text.py        
+│   ├── translator.py            
+│   ├── text_to_speech.py        
 │   └── pipeline.py              # Connects the three stages
 │
 ├── notebooks/
