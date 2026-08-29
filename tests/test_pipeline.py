@@ -13,7 +13,7 @@ import sys
 # Add project root to sys.path so "src" can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.translator import translate_ne_to_en, translate_en_to_ne
+from src.translator import translate_ne_to_en, translate_en_to_ne, translate_text
 from src.text_to_speech import synthesize_speech
 
 
@@ -25,6 +25,18 @@ def test_translate_ne_to_en_not_empty():
 
 def test_translate_en_to_ne_not_empty():
     result = translate_en_to_ne("Hello")
+    assert isinstance(result, str)
+    assert len(result) > 0
+    assert any("\u0900" <= ch <= "\u097F" for ch in result)
+
+
+def test_translate_text_accepts_sentence_limit():
+    result = translate_text(
+        "नमस्ते। तपाईं कस्तो हुनुहुन्छ?",
+        source_lang="ne",
+        target_lang="en",
+        max_sentences=2,
+    )
     assert isinstance(result, str)
     assert len(result) > 0
 
