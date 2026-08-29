@@ -1,90 +1,111 @@
 """
 translator.py
 
-Translates text between Nepali and English using deep-translator, which
-wraps Google Translate's free web endpoint (no API key required for
-light/moderate usage). Chosen for the MVP because it has solid Nepali
-support and zero setup cost; can be swapped later for NLLB or a paid
-API if quality/rate-limits become an issue.
+Translates text between Nepali and English using Meta's NLLB-200 model
+(via Hugging Face transformers), run locally.
+
+Switched from deep-translator (Google Translate scraping) because that
+backend was unreliable in testing — intermittent TranslationNotFound /
+RequestError failures even on simple input. NLLB runs offline once
+downloaded, so there's no dependency on a flaky third-party endpoint.
 """
 
-import time
-from deep_translator import GoogleTranslator, MyMemoryTranslator
-from deep_translator.exceptions import TranslationNotFound, RequestError
+import re
 
-# Language codes used throughout the project.
+import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+# Language codes used throughout the rest of the project (app.py, pipeline.py).
 NEPALI = "ne"
 ENGLISH = "en"
 
-# MyMemoryTranslator expects locale-style codes for some languages.
-_MYMEMORY_LANG_MAP = {"ne": "ne-NP", "en": "en-GB"}
+# NLLB's own language codes (FLORES-200 codes), mapped from the simple ones above.
+_NLLB_LANG_CODES = {
+    "ne": "npi_Deva",
+    "en": "eng_Latn",
+}
+
+_MODEL_NAME = "facebook/nllb-200-distilled-600M"
+
+_tokenizer = None
+_model = None
 
 
-def _translate_with_google(text: str, source_lang: str, target_lang: str) -> str:
-    translator = GoogleTranslator(source=source_lang, target=target_lang)
-    return translator.translate(text)
+def _load_model():
+    global _tokenizer, _model
+    if _model is None:
+        _tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME)
+        _model = AutoModelForSeq2SeqLM.from_pretrained(_MODEL_NAME)
+    return _tokenizer, _model
 
 
-def _translate_with_mymemory(text: str, source_lang: str, target_lang: str) -> str:
-    src = _MYMEMORY_LANG_MAP.get(source_lang, source_lang)
-    tgt = _MYMEMORY_LANG_MAP.get(target_lang, target_lang)
-    translator = MyMemoryTranslator(source=src, target=tgt)
-    return translator.translate(text)
+def _split_sentences(text: str) -> list[str]:
+    cleaned = text.strip()
+    if not cleaned:
+        return []
+
+    parts = re.split(r"(?<=[.!?])\s+|\n+", cleaned)
+    return [p.strip() for p in parts if p and p.strip()][:2]
+
+
+def _translate_single(sentence: str, source_lang: str, target_lang: str) -> str:
+    tokenizer, model = _load_model()
+
+    src_code = _NLLB_LANG_CODES[source_lang]
+    tgt_code = _NLLB_LANG_CODES[target_lang]
+
+    tokenizer.src_lang = src_code
+    inputs = tokenizer(sentence, return_tensors="pt")
+
+    with torch.no_grad():
+        generated_tokens = model.generate(
+            **inputs,
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_code),
+            max_length=256,
+        )
+
+    return tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0].strip()
 
 
 def translate_text(
-    text: str, source_lang: str, target_lang: str, retries: int = 2
+    text: str,
+    source_lang: str,
+    target_lang: str,
+    max_sentences: int = 2,
 ) -> str:
-    """
-    Translates text from source_lang to target_lang.
-
-    Tries Google Translate first (usually best quality for Nepali), with a
-    couple of retries since deep-translator's Google backend is a scraped
-    endpoint and occasionally fails transiently. Falls back to MyMemory
-    (a different free translation API) if Google keeps failing, so a single
-    flaky request doesn't crash the whole pipeline.
-
-    Args:
-        text: the text to translate.
-        source_lang: "ne" or "en".
-        target_lang: "ne" or "en".
-        retries: number of times to retry the primary (Google) backend
-            before falling back.
-
-    Returns:
-        The translated text as a string, or an error placeholder if every
-        backend fails.
-    """
-    if not text.strip():
+    """Translates text from source_lang to target_lang using NLLB-200."""
+    if not text or not text.strip():
         return ""
 
-    last_error = None
+    sentences = _split_sentences(text)
+    if not sentences:
+        return ""
 
-    # Try Google first, with retries (handles transient scraping failures).
-    for attempt in range(retries + 1):
-        try:
-            return _translate_with_google(text, source_lang, target_lang)
-        except (TranslationNotFound, RequestError) as e:
-            last_error = e
-            if attempt < retries:
-                time.sleep(0.5)
+    if max_sentences is not None:
+        sentences = sentences[:max_sentences]
 
-    # Google kept failing — fall back to MyMemory.
-    try:
-        return _translate_with_mymemory(text, source_lang, target_lang)
-    except Exception as e:
-        last_error = e
-
-    # Both backends failed — don't crash the app, surface a clear message.
-    return f"[Translation failed: {last_error}]"
+    translated = [
+        _translate_single(sentence, source_lang, target_lang) for sentence in sentences
+    ]
+    return " ".join(part for part in translated if part)
 
 
-def translate_ne_to_en(text: str) -> str:
-    return translate_text(text, source_lang=NEPALI, target_lang=ENGLISH)
+def translate_ne_to_en(text: str, max_sentences: int = 2) -> str:
+    return translate_text(
+        text,
+        source_lang=NEPALI,
+        target_lang=ENGLISH,
+        max_sentences=max_sentences,
+    )
 
 
-def translate_en_to_ne(text: str) -> str:
-    return translate_text(text, source_lang=ENGLISH, target_lang=NEPALI)
+def translate_en_to_ne(text: str, max_sentences: int = 2) -> str:
+    return translate_text(
+        text,
+        source_lang=ENGLISH,
+        target_lang=NEPALI,
+        max_sentences=max_sentences,
+    )
 
 
 if __name__ == "__main__":
